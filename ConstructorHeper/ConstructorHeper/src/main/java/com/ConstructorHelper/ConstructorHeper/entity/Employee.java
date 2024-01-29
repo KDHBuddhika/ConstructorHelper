@@ -2,47 +2,60 @@ package com.ConstructorHelper.ConstructorHeper.entity;
 
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
 @Table(name = "employee")
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 @Data
 public class Employee {
     @Id
-    @Column(name = "Employee_NIC",length = 16,nullable = false)
-    private long EmployeeNIC;
+    @Column(name = "employee_nic",length = 16,nullable = false)
+    private long employeeNIC;
 
-    @Column(name = "Employee_Fname",length = 64,nullable = false)
-    private String EmployeeFname;
+    @Column(name = "employee_fname",length = 64,nullable = false)
+    private String employeeFname;
 
-    @Column(name = "Employee_Sname",length = 64,nullable = false)
-    private String EmployeeSname;
+    @Column(name = "employee_sname",length = 64,nullable = false)
+    private String employeeSname;
 
-    @Column(name = "Employee_Email",length = 64,nullable = false)
-    private String EmployeeEmail;
+    @Column(name = "employee_email",length = 64,nullable = false)
+    private String employeeEmail;
 
-    @Column(name = "Employee_PhoneNumber",length = 10,nullable = false)
-    private String EmployeePhoneNumber;
+    @Column(name = "employee_phone_number",length = 10,nullable = false)
+    private String employeePhoneNumber;
 
-    @Column(name = "Password",nullable = false)
-    private String EmployeePassword;
+    @Column(name = "employee_address")
+    private String employeeAddress;
 
-    @Column(name = "Employee_Description")
-    private String EmployeeDescription;
+    @Column(name = "employee_work_experiance")
+    private String employeeWorkExperiance;
 
-    @Column(name = "Employee_Pic")
-    private  byte EmployeePic;
+    @Column(name = "employee_gender")
+    private String employeeGender;
 
-    @Column(name = "Employee_CV")
-    private byte EmployeeCV;
+    @Column(name = "employee_age")
+    private String employeeAge;
+
+    @Column(name = "password",nullable = false)
+    private String employeePassword;
+
+    @Column(name = "employee_description")
+    private String employeeDescription;
+
+    @Lob
+    @Column(name = "employee_pic",length = 1000)
+    private  byte[] employeePic;
+
+    @Lob
+    @Column(name = "Employee_CV",length = 1000)
+    private byte[] EmployeeCV;
 
     @Column(name = "Active_State",columnDefinition = "TINYINT default 0")
     private boolean EmployeeActiveState;

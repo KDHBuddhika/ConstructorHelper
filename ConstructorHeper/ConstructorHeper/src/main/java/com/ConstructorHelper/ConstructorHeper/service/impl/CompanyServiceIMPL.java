@@ -1,14 +1,24 @@
 package com.ConstructorHelper.ConstructorHeper.service.impl;
 
 import com.ConstructorHelper.ConstructorHeper.dto.Register.CompanyRegisterDTO;
+import com.ConstructorHelper.ConstructorHeper.dto.getAllCompanyDTO.GetAllCompanyDTO;
 import com.ConstructorHelper.ConstructorHeper.dto.login.CompanyLoginDTO;
+import com.ConstructorHelper.ConstructorHeper.dto.responseALL.CompanyResponseAllDTO;
+import com.ConstructorHelper.ConstructorHeper.dto.update.CompanyUpdateDTO;
 import com.ConstructorHelper.ConstructorHeper.entity.Companies;
 import com.ConstructorHelper.ConstructorHeper.exception.AlreadyReportedException;
+import com.ConstructorHelper.ConstructorHeper.exception.NotFoundedException;
 import com.ConstructorHelper.ConstructorHeper.repo.CompanyRepo;
 import com.ConstructorHelper.ConstructorHeper.service.CompanyService;
+import com.ConstructorHelper.ConstructorHeper.util.ImageUtil;
+import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 
@@ -18,10 +28,13 @@ public class CompanyServiceIMPL implements CompanyService {
      @Autowired
      private CompanyRepo companyRepo;
 
+     @Autowired
+     private ModelMapper modelMapper;
 
 
 
-    //******************company register*******************
+
+    // ******** ********** company register ******** *********** //
     @Override
     public String registerCompany(CompanyRegisterDTO companyRegisterDTO) {
        if(!(companyRepo.existsById(companyRegisterDTO.getCompanyId())))
@@ -43,56 +56,172 @@ public class CompanyServiceIMPL implements CompanyService {
 
     }
 
+    // ******** ********** company Login ******** *********** //
+
     @Override
-    public String LoginCompany(CompanyLoginDTO companyLoginDTO) {
+    public String loginCompany(CompanyLoginDTO companyLoginDTO) {
         Companies companies = companyRepo.findByCompanyEmail(companyLoginDTO.getCompanyEmail());
         if(companies != null){
            String password = companyLoginDTO.getCompanyPassword();
            String encodedPassword = companies.getCompanyPassword();
-//           boolean isPwsRight = passwordEncoder.match(password,encodedPassword);
+ //           boolean isPwsRight = passwordEncoder.match(password,encodedPassword);
             boolean isPwsRight= password.equals(encodedPassword);
            if(isPwsRight)
+           {Optional<Companies> companies1 = companyRepo.findByCompanyEmailAndCompanyPassword(companyLoginDTO.getCompanyEmail(),password);
+                   if(companies1.isPresent())
+                   {
+                       return"Login Successfully";
+                   }
+                   else
+                   {
+                       return"Login Fail";
+                   }
+           }else
            {
-               Optional<Companies> companies1 = companyRepo.findByCompanyEmailAndCompanyPassword(companyLoginDTO.getCompanyEmail(),encodedPassword);
-               if(companies1.isPresent())
-               {
-                   return"Login Successfully";
-               }
-               else {
-                   return"Login Fail";
-               }
-           }else {
                return "Password is Not match";
            }
-       }else {
-           return "Email not Exist";
-       }
-    }
-}
 
-//    @Override
-//    public LoginResponse LoginCompany(CompanyLoginDTO companyLoginDTO) {
-//       String msg = "";
-//       Companies companies1 = companyRepo.findByCompanyEmail(companyLoginDTO.getCompanyEmail());
-//       if(companies1 != null){
-//           String password = companyLoginDTO.getCompanyPassword();
-//           String encodedPassword = companies1.getCompanyPassword();
-////           boolean isPwsRight = passwordEncoder.match(password,encodedPassword);
-//           if(password == encodedPassword)
-//           {
-//               Optional<Companies> companies = companyRepo.findByCompanyEmailAndCompanyPassword(companyLoginDTO,encodedPassword);
-//               if(companies.isPresent())
-//               {
-//                   return new LoginResponse("Login Successfully",true);
-//               }
-//               else {
-//                   return new LoginResponse("Login Fail",false);
-//               }
-//           }else {
-//               return new LoginResponse("Password is Not match",false);
-//           }
-//       }else {
-//           return new LoginResponse("Email not Exist",false);
-//       }
-//    }
+        }else
+        {
+           return "Email not Exist";
+        }
+
+
+    }
+
+    //------------------get company details--------------------------
+
+    @Override
+    public CompanyResponseAllDTO getCompanyById(long companyId) {
+        if(companyRepo.existsById(companyId)){
+             Companies companies = companyRepo.getReferenceById(companyId);
+
+             CompanyResponseAllDTO companyResponseAllDTO = new CompanyResponseAllDTO(
+                     companies.getCompanyId(),
+                     companies.getCompanyName(),
+                     companies.getCompanyEmail(),
+                     companies.getCompanyPhoneNumber(),
+                     companies.getCompanyAddress(),
+                     companies.getCompanyDescription(),
+                     companies.getCompanyLogo(),
+                     companies.getCompanyCV(),
+                     companies.isActiveState()
+             );
+
+             return companyResponseAllDTO;
+        }
+        else {
+            throw new NotFoundedException("Not found Details");
+        }
+    }
+
+
+
+    //----------------- company update ------------------
+
+    @Override
+    public String updateCompany(CompanyUpdateDTO companyUpdateDTO) {
+        if(companyRepo.existsById(companyUpdateDTO.getCompanyId()))
+        {
+            Companies companies = companyRepo.getReferenceById(companyUpdateDTO.getCompanyId());
+            companies.setCompanyName(companyUpdateDTO.getCompanyName());
+            companies.setCompanyEmail(companyUpdateDTO.getCompanyEmail());
+            companies.setCompanyPhoneNumber(companyUpdateDTO.getCompanyPhoneNumber());
+            companies.setCompanyAddress(companyUpdateDTO.getCompanyAddress());
+            companies.setCompanyDescription(companyUpdateDTO.getCompanyDescription());
+
+            companyRepo.save(companies);
+            return "save";
+        }
+        else {
+            throw new NotFoundedException("Can not found Id");
+        }
+
+    }
+
+
+    //------------------- company logo update -------------------------------------
+
+    @Override
+    public String uploadImage(MultipartFile file, long id) throws IOException {
+        Optional<Companies> optionalCompanies = companyRepo.findById(id);
+
+        if (optionalCompanies.isPresent()) {
+            Companies companies = optionalCompanies.get();
+
+            // Update the existing employee with the new image
+            companies.setCompanyLogo(ImageUtil.compressImage(file.getBytes()));
+
+            // Save the updated employee
+            companyRepo.save(companies);
+
+            return "Image uploaded successfully for company with id: " + id;
+        } else {
+            throw new NotFoundedException("Company with id " + id + " not found");
+//            return "Employee with id " + id + " not found";
+        }
+    }
+
+    //---------------------get company logo ----------------------------------
+
+    @Override
+    public byte[] getImage(long id) {
+        Optional<Companies> dbDocument = companyRepo.findById(id);
+        byte[] image = ImageUtil.decompressImage(dbDocument.get().getCompanyLogo());
+        return image;
+    }
+
+
+
+    //------------------- company Document update -------------------------------------
+
+    @Override
+    public String uploadDocument(MultipartFile file, long id) throws IOException {
+        Optional<Companies> optionalCompanies1 = companyRepo.findById(id);
+
+        if (optionalCompanies1.isPresent()) {
+            Companies companies2 = optionalCompanies1.get();
+
+            // Update the existing employee with the new image
+            companies2.setCompanyCV(ImageUtil.compressImage(file.getBytes()));
+
+            // Save the updated employee
+            companyRepo.save(companies2);
+
+            return "Document uploaded successfully for company with id: " + id;
+        } else {
+            throw new NotFoundedException("Company with id " + id + " not found");
+//            return "Employee with id " + id + " not found";
+        }
+    }
+
+    //---------------------get company document ----------------------------------
+
+    @Override
+    public byte[] getDocument(long id) {
+        Optional<Companies> dbDocument = companyRepo.findById(id);
+        byte[] image = ImageUtil.decompressImage(dbDocument.get().getCompanyCV());
+        return image;
+    }
+
+
+
+    //--------- get all company by active state true -------
+
+    @Override
+    public List<GetAllCompanyDTO> getAllCompanysByActiveState(boolean b) {
+        List<Companies> companies = companyRepo.findByActiveStateEquals(b);
+        if(companies.size()>0)
+        {
+            List<GetAllCompanyDTO> getAllCompanyDTOS =modelMapper.map(companies,new TypeToken<List<GetAllCompanyDTO>>(){}.getType());
+            return getAllCompanyDTOS;
+        }else {
+               throw new NotFoundedException("Companies are not found");
+        }
+    }
+
+
+
+
+}
 
